@@ -1,46 +1,47 @@
 # Задаем кодовую страницу
-chcp 1251
+chcp.com 1251
 
 # задаем параметры доступа
-$cver = '' # пример 8.3.12.1685
-$cserverRAS = '' # пример app-server:38312
+$cver = '8.3.12.1685'
+$cserverRAS = 'app:38312'
 
 # путь до RAC
 $cpath = $env:ProgramFiles + '\1cv8\' + $cver + '\bin\rac.exe'
-$bases1c= "" # пример demo_test_mp83
+$bases1c = 'afm_ut_demo_test_mp_kurkov'
 
 
 # разбираем вывод от RAC в объекты
-function RacOutToObject($rac_out) {
-
+function RacOutToObject($rac_out) 
+{
   $objectList = @()  
   $object     = New-Object -TypeName PSObject      
 
-  FOREACH ($line in $rac_out) {
-
+  FOREACH ($line in $rac_out) 
+  {
     #Write-Host "raw: _ $line _"
 
-    if (([string]::IsNullOrEmpty($line))) {
+    if (([string]::IsNullOrEmpty($line))) 
+    {
       $objectList += $object
       $object     = New-Object -TypeName PSObject 
     }
 
     # Remove the whitespace at the beginning on the line
-          $line = $line -replace '^\s+', ''
+    $line = $line -replace '^\s+', ''
    
     $keyvalue = $line -split ':'
 	
     $key     = $keyvalue[0] -replace '^\s+', ''
     $value   = $keyvalue[1] -replace '^\s+', ''
 
-    $key	 = $key.trim() -replace "-","_"
-    $value   = $value.trim()
+    $key	 = $key.trim() -replace '-', '_'
+    $value = $value.trim()
 
-    if (-not ([string]::IsNullOrEmpty($key))) {
-        $object | Add-Member -Type NoteProperty -Name $key -Value $value
-     }
-						
-        }
+    if (-not ([string]::IsNullOrEmpty($key))) 
+    {
+      $object | Add-Member -TypeName NoteProperty -Name $key -Value $value
+    }
+  }
 
   return $objectList
 }
@@ -62,8 +63,10 @@ $infobases = RacOutToObject (& $cpath $cserverRAS infobase --cluster=$cluster_uu
 $infobases | Format-Table
 
 
-FOREACH ($infobase in $infobases) {
-  if ($infobase.name -eq $bases1c) {  
+FOREACH ($infobase in $infobases) 
+{
+  if ($infobase.name -eq $bases1c) 
+  {
     # создаем переменные, консоль не умеет работать с переменными массива
     $infobase_uuid = $infobase.infobase
     $infobase_name = $infobase.name
@@ -72,14 +75,15 @@ FOREACH ($infobase in $infobases) {
     $sessions = RacOutToObject(& $cpath $cserverRAS session list --cluster=$cluster_uuid --infobase=$infobase_uuid)
         
     #блокируем сеансы
-    FOREACH ($session in $sessions) {
-      # создаем переменные, консоль не умеет работать с переменными массива
+    FOREACH ($session in $sessions) 
+    {
       $session_uuid = $session.session
       $sessionsUsr = $session.user_name
     
-      Write-Host "Закрываем: $sessionsUsr сеанс в базе: $infobase_name"
+      Write-Host -Object "Закрываем: $sessionsUsr сеанс в базе: $infobase_name"
       # здесь вывод всей информации о сеансе
       $session | Format-List
+      # периписать на Start-Process -FilePath $cpath -ArgumentList "$cserverRAS session terminate --cluster=$cluster_uuid --session=$session_uuid"
       & $cpath $cserverRAS session terminate --cluster=$cluster_uuid --session=$session_uuid
     }    
   }  
