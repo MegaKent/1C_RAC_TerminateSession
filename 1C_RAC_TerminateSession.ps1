@@ -39,7 +39,7 @@ function RacOutToObject($rac_out)
 
     if (-not ([string]::IsNullOrEmpty($key))) 
     {
-      $object | Add-Member -TypeName NoteProperty -Name $key -Value $value
+      $object | Add-Member -Type NoteProperty -Name $key -Value $value
     }
   }
 
